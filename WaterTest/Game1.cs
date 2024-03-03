@@ -123,9 +123,7 @@ namespace WaterTest
             }
 
             //Swap
-            var swapData = prevData;
-            prevData = curData;
-            curData = swapData;
+            (curData, prevData) = (prevData, curData);
 
             //Assign colorData to output render target
             cpuRt.SetData(colorData);
@@ -152,10 +150,8 @@ namespace WaterTest
             curRt.Dispose();
             curRt = newFrame;
 
-            //Swap buffers
-            var swapRt = prevRt;
-            prevRt = curRt;
-            curRt = swapRt;
+            //Swap
+            (curRt, prevRt) = (prevRt, curRt);
 
             /* </Shader-Based Water Ripple> */
 
