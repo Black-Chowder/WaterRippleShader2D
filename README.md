@@ -1,4 +1,4 @@
-# 2DWaterRippleShader
+# WaterRippleShader2D
 
 A 2D water ripple algorithm implemented as a shader
 
