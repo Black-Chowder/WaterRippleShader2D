@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System;
 using System.Diagnostics;
 
 namespace WaterTest
@@ -14,6 +15,7 @@ namespace WaterTest
         //Misc Water Parameters/Variables
         private const float Damping = 0.99f;
         private const int BrushSize = 1;
+        private const float TimerStep = 0.01f;
 
         //CPU Implementation variables
         private float[,] prevData;
@@ -28,6 +30,11 @@ namespace WaterTest
         //Define screen size
         private Point iResolution = new Point(100, 100); //This is the size the effects will be rendered at
         private const int ResolutionScaler = 8; //This is the scale at which the effects are being blown up to fill the screen
+
+        private Point prevMousePos;
+        private float timeAccumulator = 0f;
+        private float timeMod = 0f;
+        private const float timeStep = 16f;
 
         public Game1()
         {
@@ -52,6 +59,8 @@ namespace WaterTest
             curRt = new RenderTarget2D(GraphicsDevice, iResolution.X, iResolution.Y);
             prevRt = new RenderTarget2D(GraphicsDevice, iResolution.X, iResolution.Y);
 
+            prevMousePos = Mouse.GetState().Position;
+
             base.Initialize();
         }
 
@@ -72,6 +81,9 @@ namespace WaterTest
             MouseState mouseState = Mouse.GetState();
             Point mousePos = mouseState.Position;
             bool isMousePressed = mouseState.LeftButton == ButtonState.Pressed;
+
+            timeMod = (prevMousePos - mousePos).ToVector2().Length();
+            prevMousePos = mousePos;
 
             if (isMousePressed)
             {
@@ -104,8 +116,38 @@ namespace WaterTest
 
         protected override void Draw(GameTime gameTime)
         {
-            /* <CPU-Based Water Ripple> */
+            timeAccumulator += timeMod;
+            
+            while (timeAccumulator > timeStep)
+            {
+                timeAccumulator -= timeStep;
+                UpdateCPU();
+            }
 
+            RenderTarget2D newFrame = UpdateShader();
+
+            //Output Results To Screen
+            GraphicsDevice.SetRenderTarget(null);
+            spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+
+            //CPU-based
+            spriteBatch.Draw(cpuRt,
+                new Rectangle(0, 0, iResolution.X * ResolutionScaler, iResolution.Y * ResolutionScaler),
+                Color.White);
+
+            //Shader-based
+            spriteBatch.Draw(newFrame,
+                new Rectangle(iResolution.X * ResolutionScaler, 0, iResolution.X * ResolutionScaler, iResolution.Y * ResolutionScaler),
+                Color.White);
+
+            spriteBatch.End();
+
+
+            base.Draw(gameTime);
+        }
+
+        private void UpdateCPU()
+        {
             //Update curData and prevData and set colorData accordingly
             Color[] colorData = new Color[iResolution.X * iResolution.Y];
             for (int i = 1; i < iResolution.X - 1; i++)
@@ -127,12 +169,10 @@ namespace WaterTest
 
             //Assign colorData to output render target
             cpuRt.SetData(colorData);
+        }
 
-            /* </CPU-Based Water Ripple> */
-
-
-            /* <Shader-Based Water Ripple> */
-
+        private RenderTarget2D UpdateShader()
+        {
             //Set effect parameters
             WaterEffect.Parameters["iResolution"].SetValue(iResolution.ToVector2());
             WaterEffect.Parameters["damping"].SetValue(Damping);
@@ -153,27 +193,7 @@ namespace WaterTest
             //Swap
             (curRt, prevRt) = (prevRt, curRt);
 
-            /* </Shader-Based Water Ripple> */
-
-
-            //Output Results To Screen
-            GraphicsDevice.SetRenderTarget(null);
-            spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-
-            //CPU-based
-            spriteBatch.Draw(cpuRt,
-                new Rectangle(0, 0, iResolution.X * ResolutionScaler, iResolution.Y * ResolutionScaler),
-                Color.White);
-
-            //Shader-based
-            spriteBatch.Draw(newFrame,
-                new Rectangle(iResolution.X * ResolutionScaler, 0, iResolution.X * ResolutionScaler, iResolution.Y * ResolutionScaler),
-                Color.White);
-
-            spriteBatch.End();
-
-
-            base.Draw(gameTime);
+            return newFrame;
         }
 
         //Helper function to create quick texture

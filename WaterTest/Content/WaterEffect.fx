@@ -9,6 +9,7 @@
 
 float2 iResolution;
 float damping;
+float deltaTime;
 
 Texture2D Current;
 
@@ -36,12 +37,12 @@ float4 MainPS(VertexShaderOutput input) : COLOR
     float2 texelSize = 1.0f / iResolution;
     float4 fragColor = tex2D(CurrentSampler, input.TextureCoordinates);
 	
-    fragColor = (
-	   tex2D(PreviousSampler, input.TextureCoordinates + float2(-texelSize.x, 0)) +
-	   tex2D(PreviousSampler, input.TextureCoordinates + float2(texelSize.x, 0)) +
-	   tex2D(PreviousSampler, input.TextureCoordinates + float2(0, -texelSize.y)) +
-	   tex2D(PreviousSampler, input.TextureCoordinates + float2(0, texelSize.y))
-		) / 2.0 - fragColor;
+    float4 p_left = tex2D(PreviousSampler, input.TextureCoordinates + float2(-texelSize.x, 0));
+    float4 p_right = tex2D(PreviousSampler, input.TextureCoordinates + float2(texelSize.x, 0));
+    float4 p_top = tex2D(PreviousSampler, input.TextureCoordinates + float2(0, -texelSize.y));
+    float4 p_bottom = tex2D(PreviousSampler, input.TextureCoordinates + float2(0, texelSize.y));
+	
+    fragColor = (p_left + p_right + p_top + p_bottom) / 2.0 - fragColor;
 	
     fragColor *= damping;
 	
